@@ -8,7 +8,7 @@ const bcrypt = require("bcrypt");
 const userNameValidator = (req, res, next) => {
   try {
     let userName = req.body.username;
-    let userRegex = /^[a-zA-Z0-9_]{3,15}$/;
+    let userRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])[A-Za-z0-9]{3,15}$/;
     if (!userName) {
       res.status(400).send("Username length should not be emplty");
     } else {
@@ -83,7 +83,7 @@ const checkingUser = async (req, res, next) => {
               return res.status(400).json({ message: "Invalid credentials" });
           }
       } else {
-          return res.status(400).json({ message: "User not found" });
+          return res.status(400).send("You dont have an account... Please Register");
       }
   } catch (e) {
       console.error(e);
@@ -91,15 +91,27 @@ const checkingUser = async (req, res, next) => {
   }
 };
 
-app.post("/signup", async (req, res) => {
+app.post("/signup",userNameValidator,
+  passwardValidator,
+  emailValidator, async (req, res) => {
   let { username, email, password } = req.body;
 
   let encryptedPw = await bcrypt.hash(password, 10)
     existingData = JSON.parse(await fs.readFile("./user.json", "utf8"));
-    let newData = { "username": username, "password": encryptedPw, "email": email };
+    let result=existingData.find((x)=>{
+      return x.username==username && x.email==email
+    })
+    if(!result){
+
+      let newData = { "username": username, "password": encryptedPw, "email": email };
     existingData.push(newData);
     await fs.writeFile("./user.json", JSON.stringify(existingData));
     res.status(200).send("You are registered successfully");
+    }
+    else{
+      res.status(400).send("Accont Already Exists.... please login")
+    }
+    
 });
 app.post(
   "/login",
